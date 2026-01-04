@@ -1,0 +1,46 @@
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+#main-header {
+    background-color: #2c3e50;
+    color: white;
+    text-align: center;
+    padding: 20px;
+}
+
+#movie-table {
+    width: 90%;
+    margin: 30px auto;
+    border-collapse: collapse;
+    background-color: white;
+}
+
+#movie-table th,
+#movie-table td {
+    border: 1px solid #333;
+    padding: 12px;
+    text-align: center;
+}
+
+#movie-table th {
+    background-color: #34495e;
+    color: white;
+}
+
+#movie-table tr:nth-child(even) {
+    background-color: #ecf0f1;
+}
+
+.movie-trailer a {
+    text-decoration: none;
+    color: #2980b9;
+    font-weight: bold;
+}
+
+.movie-trailer a:hover {
+    color: #e74c3c;
+}
