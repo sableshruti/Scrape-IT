@@ -1,1 +1,90 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from bs4 import BeautifulSoup
+import pandas as pd
+import time
 
+driver = webdriver.Chrome()
+url = "https://www.imdb.com/search/title/?groups=top_100&sort=user_rating,desc"
+driver.get(url)
+
+WebDriverWait(driver, 20).until(
+    EC.presence_of_element_located(
+        (By.CSS_SELECTOR, "li.ipc-metadata-list-summary-item")
+    )
+)
+
+soup = BeautifulSoup(driver.page_source, "html.parser")
+
+movies = []
+
+for card in soup.select("li.ipc-metadata-list-summary-item"):
+    title = card.select_one("h3.ipc-title__text")
+    link = card.select_one("a.ipc-title-link-wrapper")
+
+    if link:
+        movies.append({
+            "title": title.get_text(strip=True) if title else None,
+            "movie_url": "https://www.imdb.com" + link["href"]
+        })
+
+print(f"Movies found: {len(movies)}")
+
+movie_rows = []
+cast_rows = []
+
+for movie in movies:
+    driver.get(movie["movie_url"])
+    time.sleep(2)  
+
+    soup = BeautifulSoup(driver.page_source, "html.parser")
+
+    imdb_id = movie["movie_url"].split("/")[4]
+
+    # Rating
+    rating = soup.select_one("span.sc-eb51e184-1")
+    rating = rating.get_text(strip=True) if rating else None
+
+    # Genres
+    genres = [g.get_text(strip=True)
+              for g in soup.select('a[href^="/search/title?genres="]')]
+
+    # Languages
+    languages = [l.get_text(strip=True)
+                 for l in soup.select('li[data-testid="title-details-languages"] a')]
+
+    # Country
+    country = [c.get_text(strip=True)
+               for c in soup.select('li[data-testid="title-details-origin"] a')]
+
+    movie_rows.append({
+        "imdb_id": imdb_id,
+        "title": movie["title"],
+        "rating": rating,
+        "genres": ", ".join(genres),
+        "languages": ", ".join(languages),
+        "country_origin": ", ".join(country),
+        "movie_url": movie["movie_url"]
+    })
+
+    # Top cast (limit to 10)
+    cast_tags = soup.select('a[data-testid="title-cast-item__actor"]')[:10]
+
+    for i, actor in enumerate(cast_tags, start=1):
+        cast_rows.append({
+            "imdb_id": imdb_id,
+            "actor_name": actor.get_text(strip=True),
+            "billing_order": i
+        })
+
+driver.quit()
+
+movies_df = pd.DataFrame(movie_rows)
+cast_df = pd.DataFrame(cast_rows)
+
+movies_df.to_csv("movies.csv", index=False)
+cast_df.to_csv("cast.csv", index=False)
+
+print("Saved movies.csv and cast.csv")
